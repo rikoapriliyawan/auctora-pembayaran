@@ -25,6 +25,18 @@ return [
     'pesanan' => [
         'url' => env('PESANAN_URL', 'http://pesanan/api/v1'),
     ],
+    
+    'rabbitmq' => [
+        'host' => env('RABBITMQ_HOST', 'rabbitmq'),
+        'port' => env('RABBITMQ_PORT', 5672),
+        'user' => env('RABBITMQ_USER', 'guest'),
+        'password' => env('RABBITMQ_PASSWORD', 'guest'),
+        'exchange' => 'auctora.events',
+        'antrean' => [
+            'stok.pembayaran_dikonfirmasi',
+            'pengiriman.pembayaran_dikonfirmasi',
+        ],
+    ],
 
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),

@@ -7,4 +7,5 @@ Route::prefix('v1')->group(function () {
     Route::get('/pembayaran', [PembayaranController::class, 'index']);
     Route::post('/pembayaran', [PembayaranController::class, 'store']);
     Route::get('/pembayaran/{id}', [PembayaranController::class, 'show'])->whereUuid('id');
+    Route::post('/pembayaran/{id}/konfirmasi', [PembayaranController::class, 'konfirmasi'])->whereUuid('id');
 });
