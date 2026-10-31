@@ -19,7 +19,7 @@ info:
     name: Hak cipta kelompok, untuk keperluan perkuliahan
     url: https://example.com/lisensi
 servers:
-  - url: http://localhost:8002/api/v1
+  - url: http://localhost/api/v1
     description: Lingkungan lokal (Laravel Sail)
 tags:
   - name: Pembayaran
@@ -38,9 +38,9 @@ paths:
           description: Menyaring pembayaran berdasarkan status.
           required: false
           schema:
-            $ref: '#/components/schemas/StatusPembayaran'
+            $ref: "#/components/schemas/StatusPembayaran"
       responses:
-        '200':
+        "200":
           description: Daftar pembayaran berhasil diambil.
           content:
             application/json:
@@ -51,9 +51,9 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Pembayaran'
-        '422':
-          $ref: '#/components/responses/GalatValidasi'
+                      $ref: "#/components/schemas/Pembayaran"
+        "422":
+          $ref: "#/components/responses/GalatValidasi"
     post:
       tags: [Pembayaran]
       operationId: buatPembayaran
@@ -67,13 +67,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PembayaranBaru'
+              $ref: "#/components/schemas/PembayaranBaru"
             example:
               pesanan_id: 5f1c2a6e-8a47-4d52-9b1e-3c7f0d2a9e11
               nominal: 185000
               metode: transfer_bank
       responses:
-        '201':
+        "201":
           description: Pembayaran berhasil dicatat.
           headers:
             Location:
@@ -84,13 +84,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pembayaran'
-        '404':
-          $ref: '#/components/responses/TidakDitemukan'
-        '409':
-          $ref: '#/components/responses/Konflik'
-        '422':
-          $ref: '#/components/responses/GalatValidasi'
+                $ref: "#/components/schemas/Pembayaran"
+        "404":
+          $ref: "#/components/responses/TidakDitemukan"
+        "409":
+          $ref: "#/components/responses/Konflik"
+        "422":
+          $ref: "#/components/responses/GalatValidasi"
 
   /pembayaran/{id}:
     get:
@@ -99,16 +99,16 @@ paths:
       summary: Menampilkan satu pembayaran
       description: Mengambil detail satu pembayaran berdasarkan id.
       parameters:
-        - $ref: '#/components/parameters/IdPembayaran'
+        - $ref: "#/components/parameters/IdPembayaran"
       responses:
-        '200':
+        "200":
           description: Detail pembayaran berhasil diambil.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pembayaran'
-        '404':
-          $ref: '#/components/responses/TidakDitemukan'
+                $ref: "#/components/schemas/Pembayaran"
+        "404":
+          $ref: "#/components/responses/TidakDitemukan"
 
   /pembayaran/{id}/konfirmasi:
     post:
@@ -121,29 +121,29 @@ paths:
         status berubah menjadi `dikonfirmasi` dan event `PembayaranDikonfirmasi`
         diterbitkan. Konfirmasi hanya dapat dilakukan satu kali.
       parameters:
-        - $ref: '#/components/parameters/IdPembayaran'
+        - $ref: "#/components/parameters/IdPembayaran"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/KonfirmasiPembayaran'
+              $ref: "#/components/schemas/KonfirmasiPembayaran"
             example:
               nominal_diterima: 185000
               catatan: Mutasi cocok, atas nama pembeli.
       responses:
-        '200':
+        "200":
           description: Pembayaran dikonfirmasi dan event diterbitkan.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pembayaran'
-        '404':
-          $ref: '#/components/responses/TidakDitemukan'
-        '409':
-          $ref: '#/components/responses/Konflik'
-        '422':
-          $ref: '#/components/responses/GalatValidasi'
+                $ref: "#/components/schemas/Pembayaran"
+        "404":
+          $ref: "#/components/responses/TidakDitemukan"
+        "409":
+          $ref: "#/components/responses/Konflik"
+        "422":
+          $ref: "#/components/responses/GalatValidasi"
 
 components:
   parameters:
@@ -212,7 +212,7 @@ components:
           type: string
           enum: [transfer_bank]
         status:
-          $ref: '#/components/schemas/StatusPembayaran'
+          $ref: "#/components/schemas/StatusPembayaran"
         dibuat_pada:
           type: string
           format: date-time
@@ -227,7 +227,7 @@ components:
         nominal: 185000
         metode: transfer_bank
         status: menunggu_konfirmasi
-        dibuat_pada: '2026-11-01T10:15:00Z'
+        dibuat_pada: "2026-11-01T10:15:00Z"
         dikonfirmasi_pada: null
 
     ProblemDetails:
@@ -270,7 +270,7 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/ProblemDetails'
+            $ref: "#/components/schemas/ProblemDetails"
           example:
             type: https://auctora.example/problems/tidak-ditemukan
             title: Pembayaran tidak ditemukan
@@ -282,7 +282,7 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/ProblemDetails'
+            $ref: "#/components/schemas/ProblemDetails"
           example:
             type: https://auctora.example/problems/sudah-dikonfirmasi
             title: Pembayaran sudah dikonfirmasi
@@ -294,7 +294,7 @@ components:
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/ProblemDetails'
+            $ref: "#/components/schemas/ProblemDetails"
           example:
             type: https://auctora.example/problems/validasi-gagal
             title: Data tidak valid

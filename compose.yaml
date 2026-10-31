@@ -59,6 +59,14 @@ services:
             RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-guest}"
         networks:
             - sail
+
+    pesanan-stub:
+        image: "php:8.3-cli"
+        command: ["php", "-S", "0.0.0.0:80", "/stub/router.php"]
+        volumes:
+            - "./stub-pesanan:/stub"
+        networks:
+            - sail
 networks:
     sail:
         driver: bridge
