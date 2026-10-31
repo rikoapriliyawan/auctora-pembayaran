@@ -65,12 +65,12 @@ menerbitkan event `PembayaranDikonfirmasi` ke RabbitMQ.
 
 ## Anggota dan pembagian tugas
 
-| Nama  | Bagian yang dikerjakan                                              |
-| ----- | ------------------------------------------------------------------- |
+| Nama               | Bagian yang dikerjakan                                              |
+| ------------------ | ------------------------------------------------------------------- |
 | [Riko Apriliyawan] | Layanan Pembayaran (repositori ini), kontrak OpenAPI, kontrak event |
-| [ISI] | Layanan Pesanan                                                     |
-| [ISI] | Layanan Stok                                                        |
-| [ISI] | Layanan Pengiriman / dokumen analisis                               |
+| [aurora]           | Layanan Pesanan                                                     |
+| [Fathur]           | Layanan Stok                                                        |
+| [Ilyas]            | Layanan Pengiriman / dokumen analisis                               |
 
 ## Isi repositori
 
@@ -86,8 +86,8 @@ Docker Desktop. Pengguna Windows menjalankan perintah di terminal WSL2 (Ubuntu).
 ## Menjalankan dari nol
 
 ```
-git clone [ISI-URL-REPOSITORI]
-cd [ISI-NAMA-FOLDER]
+git clone [https://github.com/rikoapriliyawan/auctora-pembayaran]
+cd [auctora-pembayaran]
 cp .env.example .env
 ```
 
