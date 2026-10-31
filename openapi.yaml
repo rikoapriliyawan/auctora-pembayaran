@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: Layanan Pembayaran - Auctora Collection
+  version: 1.0.0
+  description: |
+    Kontrak REST Layanan Pembayaran (ditulis design-first).
+
+    Layanan ini menyimpan status pembayaran per pesanan. Admin mengecek mutasi
+    di mobile banking secara manual, lalu mengonfirmasi pembayaran lewat
+    endpoint konfirmasi. Setelah konfirmasi berhasil, layanan menerbitkan event
+    `PembayaranDikonfirmasi` ke message broker (lihat kontrak-event.md).
+
+    Semua galat dikembalikan dalam format Problem Details
+    (`application/problem+json`, RFC 9457).
+  contact:
+    name: Kelompok Proyek Akhir - Auctora Collection
+    email: kelompok@example.com
+  license:
+    name: Hak cipta kelompok, untuk keperluan perkuliahan
+    url: https://example.com/lisensi
+servers:
+  - url: http://localhost:8002/api/v1
+    description: Lingkungan lokal (Laravel Sail)
+tags:
+  - name: Pembayaran
+    description: Pencatatan dan konfirmasi pembayaran pesanan
+
+paths:
+  /pembayaran:
+    get:
+      tags: [Pembayaran]
+      operationId: daftarPembayaran
+      summary: Menampilkan daftar pembayaran
+      description: Mengambil daftar pembayaran, dapat disaring berdasarkan status.
+      parameters:
+        - name: status
+          in: query
+          description: Menyaring pembayaran berdasarkan status.
+          required: false
+          schema:
+            $ref: '#/components/schemas/StatusPembayaran'
+      responses:
+        '200':
+          description: Daftar pembayaran berhasil diambil.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Pembayaran'
+        '422':
+          $ref: '#/components/responses/GalatValidasi'
+    post:
+      tags: [Pembayaran]
+      operationId: buatPembayaran
+      summary: Mencatat pembayaran baru untuk sebuah pesanan
+      description: |
+        Membuat catatan pembayaran dengan status `menunggu_konfirmasi`.
+        Layanan memeriksa ke Layanan Pesanan bahwa pesanan ada.
+        Satu pesanan hanya boleh memiliki satu pembayaran.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PembayaranBaru'
+            example:
+              pesanan_id: 5f1c2a6e-8a47-4d52-9b1e-3c7f0d2a9e11
+              nominal: 185000
+              metode: transfer_bank
+      responses:
+        '201':
+          description: Pembayaran berhasil dicatat.
+          headers:
+            Location:
+              description: Alamat sumber daya pembayaran yang baru dibuat.
+              schema:
+                type: string
+                format: uri-reference
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pembayaran'
+        '404':
+          $ref: '#/components/responses/TidakDitemukan'
+        '409':
+          $ref: '#/components/responses/Konflik'
+        '422':
+          $ref: '#/components/responses/GalatValidasi'
+
+  /pembayaran/{id}:
+    get:
+      tags: [Pembayaran]
+      operationId: ambilPembayaran
+      summary: Menampilkan satu pembayaran
+      description: Mengambil detail satu pembayaran berdasarkan id.
+      parameters:
+        - $ref: '#/components/parameters/IdPembayaran'
+      responses:
+        '200':
+          description: Detail pembayaran berhasil diambil.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pembayaran'
+        '404':
+          $ref: '#/components/responses/TidakDitemukan'
+
+  /pembayaran/{id}/konfirmasi:
+    post:
+      tags: [Pembayaran]
+      operationId: konfirmasiPembayaran
+      summary: Mengonfirmasi pembayaran setelah mutasi dicek admin
+      description: |
+        Admin menyatakan bahwa dana sudah diterima dengan mengirim nominal yang
+        terlihat di mutasi mobile banking. Jika sesuai dengan nominal pesanan,
+        status berubah menjadi `dikonfirmasi` dan event `PembayaranDikonfirmasi`
+        diterbitkan. Konfirmasi hanya dapat dilakukan satu kali.
+      parameters:
+        - $ref: '#/components/parameters/IdPembayaran'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KonfirmasiPembayaran'
+            example:
+              nominal_diterima: 185000
+              catatan: Mutasi cocok, atas nama pembeli.
+      responses:
+        '200':
+          description: Pembayaran dikonfirmasi dan event diterbitkan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pembayaran'
+        '404':
+          $ref: '#/components/responses/TidakDitemukan'
+        '409':
+          $ref: '#/components/responses/Konflik'
+        '422':
+          $ref: '#/components/responses/GalatValidasi'
+
+components:
+  parameters:
+    IdPembayaran:
+      name: id
+      in: path
+      description: Pengenal unik pembayaran.
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    StatusPembayaran:
+      type: string
+      description: Status pembayaran.
+      enum: [menunggu_konfirmasi, dikonfirmasi]
+
+    PembayaranBaru:
+      type: object
+      description: Data untuk mencatat pembayaran baru.
+      required: [pesanan_id, nominal, metode]
+      properties:
+        pesanan_id:
+          type: string
+          format: uuid
+          description: Pengenal pesanan di Layanan Pesanan.
+        nominal:
+          type: integer
+          minimum: 1
+          description: Total yang harus dibayar, dalam rupiah.
+        metode:
+          type: string
+          description: Metode pembayaran.
+          enum: [transfer_bank]
+
+    KonfirmasiPembayaran:
+      type: object
+      description: Data konfirmasi dari admin.
+      required: [nominal_diterima]
+      properties:
+        nominal_diterima:
+          type: integer
+          minimum: 1
+          description: Nominal yang terlihat di mutasi mobile banking, dalam rupiah.
+        catatan:
+          type: string
+          maxLength: 255
+          description: Catatan admin, opsional.
+
+    Pembayaran:
+      type: object
+      description: Catatan pembayaran sebuah pesanan.
+      required: [id, pesanan_id, nominal, metode, status, dibuat_pada]
+      properties:
+        id:
+          type: string
+          format: uuid
+        pesanan_id:
+          type: string
+          format: uuid
+        nominal:
+          type: integer
+          description: Total yang harus dibayar, dalam rupiah.
+        metode:
+          type: string
+          enum: [transfer_bank]
+        status:
+          $ref: '#/components/schemas/StatusPembayaran'
+        dibuat_pada:
+          type: string
+          format: date-time
+        dikonfirmasi_pada:
+          type: string
+          format: date-time
+          nullable: true
+          description: Terisi setelah pembayaran dikonfirmasi.
+      example:
+        id: 0b6d1e7c-4f2a-4a3e-8f55-1d9c7a2b3e44
+        pesanan_id: 5f1c2a6e-8a47-4d52-9b1e-3c7f0d2a9e11
+        nominal: 185000
+        metode: transfer_bank
+        status: menunggu_konfirmasi
+        dibuat_pada: '2026-11-01T10:15:00Z'
+        dikonfirmasi_pada: null
+
+    ProblemDetails:
+      type: object
+      description: Format galat sesuai RFC 9457 (Problem Details).
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: Pengenal jenis galat.
+        title:
+          type: string
+          description: Ringkasan singkat galat.
+        status:
+          type: integer
+          description: Kode status HTTP.
+        detail:
+          type: string
+          description: Penjelasan galat untuk kejadian ini.
+        instance:
+          type: string
+          format: uri-reference
+          description: Alamat permintaan yang menimbulkan galat.
+        errors:
+          type: array
+          description: Daftar kesalahan per field (khusus galat validasi).
+          items:
+            type: object
+            required: [field, pesan]
+            properties:
+              field:
+                type: string
+              pesan:
+                type: string
+
+  responses:
+    TidakDitemukan:
+      description: Sumber daya yang diminta tidak ditemukan.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://auctora.example/problems/tidak-ditemukan
+            title: Pembayaran tidak ditemukan
+            status: 404
+            detail: Tidak ada pembayaran dengan id 0b6d1e7c-4f2a-4a3e-8f55-1d9c7a2b3e44.
+            instance: /api/v1/pembayaran/0b6d1e7c-4f2a-4a3e-8f55-1d9c7a2b3e44
+    Konflik:
+      description: Permintaan bertentangan dengan keadaan sumber daya saat ini.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://auctora.example/problems/sudah-dikonfirmasi
+            title: Pembayaran sudah dikonfirmasi
+            status: 409
+            detail: Pembayaran ini sudah dikonfirmasi dan tidak dapat dikonfirmasi lagi.
+            instance: /api/v1/pembayaran/0b6d1e7c-4f2a-4a3e-8f55-1d9c7a2b3e44/konfirmasi
+    GalatValidasi:
+      description: Data yang dikirim tidak valid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: https://auctora.example/problems/validasi-gagal
+            title: Data tidak valid
+            status: 422
+            detail: Nominal yang diterima tidak sama dengan nominal pesanan.
+            instance: /api/v1/pembayaran/0b6d1e7c-4f2a-4a3e-8f55-1d9c7a2b3e44/konfirmasi
+            errors:
+              - field: nominal_diterima
+                pesan: Harus sama dengan nominal pembayaran (185000).
