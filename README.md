@@ -56,3 +56,94 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Layanan Pembayaran - Auctora Collection
+
+Layanan Pembayaran untuk proyek akhir Integrasi Sistem dan Komputasi Awan
+(25IF1504). Layanan ini mencatat pembayaran pesanan, mengonfirmasinya, dan
+menerbitkan event `PembayaranDikonfirmasi` ke RabbitMQ.
+
+## Anggota dan pembagian tugas
+
+| Nama  | Bagian yang dikerjakan                                              |
+| ----- | ------------------------------------------------------------------- |
+| [Riko Apriliyawan] | Layanan Pembayaran (repositori ini), kontrak OpenAPI, kontrak event |
+| [ISI] | Layanan Pesanan                                                     |
+| [ISI] | Layanan Stok                                                        |
+| [ISI] | Layanan Pengiriman / dokumen analisis                               |
+
+## Isi repositori
+
+- `openapi.yaml`: kontrak REST (design-first, dicek dengan Spectral)
+- `kontrak-event.md`: kontrak event `PembayaranDikonfirmasi`
+- `stub-pesanan/`: stub Layanan Pesanan khusus demonstrasi, bukan layanan sebenarnya
+- `app/`, `routes/api.php`, `tests/`: kode layanan dan feature test
+
+## Prasyarat
+
+Docker Desktop. Pengguna Windows menjalankan perintah di terminal WSL2 (Ubuntu).
+
+## Menjalankan dari nol
+
+```
+git clone [ISI-URL-REPOSITORI]
+cd [ISI-NAMA-FOLDER]
+cp .env.example .env
+```
+
+Pasang dependensi PHP (belum ada folder `vendor` pada salinan baru). Versi
+image mengikuti PHP proyek, lihat bagian "Installing Composer Dependencies For
+Existing Projects" di dokumentasi Laravel Sail jika perintah ini gagal:
+
+```
+docker run --rm -u "$(id -u):$(id -g)" -v "$(pwd):/var/www/html" -w /var/www/html laravelsail/php85-composer:latest composer install --ignore-platform-reqs
+```
+
+Nyalakan semua container, lalu siapkan aplikasi:
+
+```
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+```
+
+Container yang berjalan: aplikasi Laravel (port 80), PostgreSQL, RabbitMQ,
+dan stub Layanan Pesanan. Dashboard RabbitMQ ada di http://localhost:15672
+(pengguna `guest`, kata sandi `guest`).
+
+## Menjalankan test
+
+```
+./vendor/bin/sail artisan test
+```
+
+## Mencoba alur lengkap
+
+```
+curl -i -X POST http://localhost/api/v1/pembayaran -H "Content-Type: application/json" -H "Accept: application/json" -d '{"pesanan_id":"5f1c2a6e-8a47-4d52-9b1e-3c7f0d2a9e11","nominal":185000,"metode":"transfer_bank"}'
+```
+
+Salin `id` dari respons, lalu konfirmasi:
+
+```
+curl -i -X POST http://localhost/api/v1/pembayaran/ID_PEMBAYARAN/konfirmasi -H "Content-Type: application/json" -H "Accept: application/json" -d '{"nominal_diterima":185000}'
+```
+
+Event muncul di antrean `stok.pembayaran_dikonfirmasi` dan
+`pengiriman.pembayaran_dikonfirmasi` pada dashboard RabbitMQ.
+
+Menjalankan konfirmasi kedua untuk id yang sama menghasilkan galat 409
+(Problem Details). Mengirim `nominal_diterima` yang berbeda menghasilkan 422.
+
+## Memeriksa kontrak
+
+```
+./vendor/bin/sail npx @stoplight/spectral-cli lint openapi.yaml
+```
+
+## Catatan
+
+- Layanan Pesanan pada repositori ini berupa stub (`stub-pesanan/router.php`)
+  yang selalu menjawab satu pesanan contoh. Alamatnya diatur lewat `PESANAN_URL`
+  di `.env`.
+- Autentikasi belum diterapkan (belum dinilai di Checkpoint 1).
